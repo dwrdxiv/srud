@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { collection, getDocs, updateDoc, increment, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -8,13 +8,15 @@ const mostrarCarrito = ref(false);
 const zapatoSeleccionado = ref(null);
 const tallaElegida = ref('');
 
+const busqueda = ref('');
+
 const zapatos = ref([]);
 const cargando = ref(true);
 
 const generarRecibo = () => {
   const productosHTML = carrito.value.map(item => `
     <tr>
-      <td>${item.nombre} (Talla: ${item.talla})</td>
+      <td>${item.nombre} (Size: ${item.talla})</td>
       <td>$${item.precio}</td>
     </tr>
   `).join('');
@@ -23,7 +25,7 @@ const generarRecibo = () => {
   ventanaPuntual.document.write(`
     <html>
       <head>
-        <title>Recibo de Compra - SHRUD</title>
+        <title>Buy Invoice - SHRUD</title>
         <style>
           body { font-family: sans-serif; padding: 40px; text-align: center; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -34,14 +36,14 @@ const generarRecibo = () => {
       </head>
       <body>
         <h1>SHRUD</h1>
-        <p>Comprobante de Pago</p>
+        <p>Payment Receipt</p>
         <hr>
         <table>
-          <thead><tr><th>Producto</th><th>Precio</th></tr></thead>
+          <thead><tr><th>Product</th><th>Price</th></tr></thead>
           <tbody>${productosHTML}</tbody>
         </table>
         <div class="total">Total: $${total}</div>
-        <p class="footer">Gracias por su compra. Fecha: ${new Date().toLocaleDateString()}</p>
+        <p class="footer">Thank you for your purchase. Date: ${new Date().toLocaleDateString()}</p>
       </body>
     </html>
   `);
@@ -58,9 +60,16 @@ const prepararCarrito = (zapato) => {
 
 const anadiralCarrito = () => {
   if (!tallaElegida.value) {
-    alert('Por favor, selecciona una talla antes de añadir al carrito.');
+    alert('Please, select a size before adding to cart.');
     return;
   }
+
+  const stockDisponible = zapatoSeleccionado.value.tallas[tallaElegida.value];
+  if (stockDisponible <= 0) {
+    alert("We are sorry, size out of stock.")
+    mostrarCarrito.value = true;
+    return;
+  } 
 
   carrito.value.push({
     id: zapatoSeleccionado.value.id,
@@ -72,11 +81,11 @@ const anadiralCarrito = () => {
   });
 
   mostrarCarrito.value = false;
-  alert('Producto añadido al carrito');
+  alert('Added '+ zapatoSeleccionado.value.nombre + ' size ' + tallaElegida.value + ' to your cart.');
 };
 
 const vaciarCarrito = () => {
-  if (confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+  if (confirm('¿Are you sure you want to empty the cart?')) {
     carrito.value = [];
   }
 };
@@ -88,13 +97,13 @@ const procesarCompra = async () => {
         [`tallas.${item.talla}`]: increment(-1)
       });
   }
-  alert('Compra procesada con éxito');
+  alert('Purchase successful! Generating your receipt...');
   generarRecibo();
   obtenerZapatos();
   carrito.value = [];
   } catch (error) {
-    console.error("Error procesando compra:", error);
-    alert('Hubo un error al procesar la compra. Por favor, intenta de nuevo.'); 
+    console.error("Error processing purchase:", error);
+    alert('There was an error processing the purchase. Please try again.'); 
   }
   
 };
@@ -107,11 +116,21 @@ const obtenerZapatos = async () => {
       ...doc.data()
     }));
   } catch (error) {
-    console.error("Error cargando productos:", error);
+    console.error("Error loading products:", error);
   } finally {
     cargando.value = false;
   }
 };
+
+const zapatosFiltrados = computed(() => {
+  const termino = busqueda.value.toLowerCase().trim();
+  if (!termino) return zapatos.value;
+
+  return zapatos.value.filter(zapato => {
+    return zapato.nombre.toLowerCase().includes(termino) || 
+           zapato.marca.toLowerCase().includes(termino);
+  })
+});
 
 onMounted(obtenerZapatos);
 </script>
@@ -120,14 +139,17 @@ onMounted(obtenerZapatos);
   <main >
     <section >
       <div class="catalogoTitle">
-        <h2 >Productos Disponibles</h2>
+          <h2  style="font-size: 2rem; margin-bottom: 0px;">Available Products</h2>
       </div>
-
+      <div class="searchDiv">
+          <input v-model="busqueda" type="text" placeholder="Looking for your favorite?" class="search-input" />
+      </div>
+      
       <div v-if="cargando">
         <div ></div>
       </div>
       <div v-else class="catalogoDiv">
-        <div v-for="zapato in zapatos" :key="zapato.id" class="productoDiv">
+        <div v-for="zapato in zapatosFiltrados" :key="zapato.id" class="productoDiv">
           <div >
             <img 
               :src="zapato.imagen_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600'"/>
@@ -141,14 +163,14 @@ onMounted(obtenerZapatos);
             <span >${{ zapato.precio_venta }}</span>
             
             
-            <button @click="prepararCarrito(zapato)">Añadir al carrito</button>
+            <button @click="prepararCarrito(zapato)">Add to Cart</button>
           </div>
         </div>
       </div>
 
       <div v-if="!cargando && zapatos.length === 0" >
-        <p >No hay zapatos disponibles en el inventario.</p>
-        <RouterLink to="/admin">Ir al panel de Admin para agregar</RouterLink>
+        <p >No available shoes in inventory.</p>
+        <RouterLink to="/admin">Go to Admin panel to add products</RouterLink>
       </div>
     </section>
   </main>
@@ -157,7 +179,7 @@ onMounted(obtenerZapatos);
   <div v-if="mostrarCarrito" class="modal-overlay">
     <div class="modal-content">
       <h2>{{ zapatoSeleccionado.nombre }}</h2>
-      <p>Selecciona tu talla:</p>
+      <p>Select your size:</p>
       
       <div class="tallas-grid">
         <button class="tallas"
@@ -165,29 +187,29 @@ onMounted(obtenerZapatos);
           :key="talla"
           @click="tallaElegida = talla"
           :class="{ 'talla-activa': tallaElegida === talla }"
-          v-show="stock > 0"
+          :disabled="stock <= 0"
         >
-          {{ talla }} ({{ stock }} disp.)
+          {{ talla }} ({{ stock }} available)
         </button>
       </div>
 
       <div class="modal-acciones">
-        <button @click="mostrarCarrito = false" class="btn-cancelar">Cancelar</button>
-        <button @click="anadiralCarrito" class="btn-confirmar">Confirmar</button>
+        <button @click="mostrarCarrito = false" class="btn-cancelar">Cancel</button>
+        <button @click="anadiralCarrito" class="btn-confirmar">Confirm</button>
       </div>
     </div>
   </div>
 
   <div v-if="carrito.length > 0" class="resumen-carrito">
-    <h3>Tu Carrito ({{ carrito.length }})</h3>
+    <h3>Your Cart ({{ carrito.length }})</h3>
       <ul>
         <li v-for="(item, index) in carrito" :key="index">
-          {{ item.nombre }} - Talla: {{ item.talla }} - ${{ item.precio }}
+          {{ item.nombre }} - Size: {{ item.talla }} - ${{ item.precio }}
         </li>
       </ul>
       <div class="carrito-acciones">
-        <button @click="vaciarCarrito" class="btn-vaciar">Vaciar Carrito</button>
-        <button @click="procesarCompra" class="btn-pagar">Pagar</button>
+        <button @click="vaciarCarrito" class="btn-vaciar">Empty Cart</button>
+        <button @click="procesarCompra" class="btn-pagar">Checkout</button>
       </div>
     
   </div>  
@@ -210,7 +232,18 @@ onMounted(obtenerZapatos);
   padding: 40px;
   background-image: linear-gradient(180deg, #ffffff 0%, #dbdfe7 50%);
 }
-
+.searchDiv {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.search-input {
+  width: 300px;
+  padding: 10px 15px;
+  border-radius: 20px;
+  border: 2px solid #ccc;
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+}
 .productoDiv {
   background: rgb(255, 255, 255);
   border-radius: 10px;

@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router';
 import NavBar from './components/NavBar.vue';
 import Encabezado from './components/Encabezado.vue';
+import Footer from './components/Footer.vue';
 </script>
 
 <template>
@@ -10,6 +11,7 @@ import Encabezado from './components/Encabezado.vue';
     <NavBar />
   </div>
   <RouterView/>
+  <Footer />
 </template>
 
 <style scoped>

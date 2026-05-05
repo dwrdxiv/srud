@@ -8,13 +8,13 @@ const pageData = computed(() => {
   switch (route.path) {
     case '/inventario':
       return {
-        titulo: 'Inventario',
+        titulo: 'Inventory',
         gif: '/bannerinventario.png' 
       };
     case '/':
     default:
       return {
-        titulo: 'Inicio - Catálogo de Calzado',
+        titulo: 'Home - Shoe Catalog',
         gif: '/bannerhome.png'
       };
 
@@ -27,8 +27,8 @@ const pageData = computed(() => {
     <nav class="top-nav">
       <div class="brand">SHRUD</div>
       <div class="botonesUser">
-        <button class="loginButton">Iniciar Sesion</button>
-        <button class="registerButton">Registrarse</button>
+        <button class="loginButton">Login</button>
+        <button class="registerButton">Register</button>
       </div>
     </nav>
 
