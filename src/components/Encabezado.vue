@@ -9,13 +9,15 @@ const pageData = computed(() => {
     case '/inventario':
       return {
         titulo: 'Inventory',
-        gif: '/bannerinventario.png' 
+        gif: '/bannerinventario.png',
+        logotitulo: '/logoinventory.svg'
       };
     case '/':
     default:
       return {
         titulo: 'Home - Shoe Catalog',
-        gif: '/bannerhome.png'
+        gif: '/bannerhome.png',
+        logotitulo: '/logocatalog.svg'
       };
 
   }
@@ -34,7 +36,7 @@ const pageData = computed(() => {
 
     <div class="banner" :style="{ backgroundImage: `url(${pageData.gif})` }">
       <div class="overlay">
-        <h1 style="margin-left: 20px;">{{ pageData.titulo }}</h1>
+        <img :src="pageData.logotitulo"  :alt="pageData.titulo" class="header-svg-titulo" style="color: aliceblue; height: 100px; margin-left: 85%; transition: all 0.2s ease-in-out;">
       </div>
     </div>
   </header>
@@ -109,7 +111,10 @@ const pageData = computed(() => {
   align-items:end;
   justify-content:last baseline;
 }
-
+.header-svg-titulo:hover{
+  transform: scale(1.05);
+  fill: red;
+}
 
 
 </style>
