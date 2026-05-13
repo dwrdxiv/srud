@@ -133,9 +133,11 @@ This is an example of how to list things you need to use the software and how to
 
 ![Product Name Screen Shot][ss2]
 ![Product Name Screen Shot][ss3]
+
 Use the Inventory section to register, edit and delete any shoe model you desire to keep or not in the Inventory, you can also register various Sizes per model.
 
 ![Product Name Screen Shot][ss4]
+
 In the Home page, all the shoes available in the inventory will appear, if you are looking for a specific one, just search for it in the bar in the top. It works pretty fluid due to Vue's virtual DOM update.
 
 ![Product Name Screen Shot][ss5]
